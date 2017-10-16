@@ -1,0 +1,7 @@
+C:\Users\lerwi\Github\PsWebSrv\PSModule\obj\Release\PSWebSrv.csprojResolveAssemblyReference.cache
+C:\Users\lerwi\Github\PsWebSrv\PSModule\Deploy\Release\Erwine.Leonard.T.PSWebSrv.dll
+C:\Users\lerwi\Github\PsWebSrv\PSModule\Deploy\Release\Erwine.Leonard.T.PSWebSrv.pdb
+C:\Users\lerwi\Github\PsWebSrv\PSModule\obj\Release\Erwine.Leonard.T.PSWebSrv.dll
+C:\Users\lerwi\Github\PsWebSrv\PSModule\obj\Release\Erwine.Leonard.T.PSWebSrv.pdb
+C:\Users\lerwi\Github\PsWebSrv\PSModule\Deploy\Release\Erwine.Leonard.T.PSWebSrv.psd1
+C:\Users\lerwi\Github\PsWebSrv\PSModule\Deploy\Release\Erwine.Leonard.T.PSWebSrv.dll-Help.xml
