@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Test</title>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+	<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
+	<script type="text/javascript" src="https://code.jquery.com/color/jquery.color-2.1.2.min.js" integrity="sha256-H28SdxWrZ387Ldn0qogCzFiUDDxfPiNIyJX7BECQkDE=" crossorigin="anonymous"></script>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+	<script type="text/javascript">//<![CDATA[
+
+// This emulates the calcuations in the "Submit a Trouble Ticket" Record Producer
+function submitTroubleTicketCalculation(usersImpacted,callerImpact,isMissionRelated,vip) {
+	return {
+		"impact": Math.round((callerImpact + ((usersImpacted > 0) ? usersImpacted : callerImpact) +
+			((vip) ? 1 : callerImpact) +
+			((isMissionRelated) ? 1 : callerImpact)) / 5.33),
+		"urgency": (vip) ? ((isMissionRelated) ? 1 : 2) : ((isMissionRelated) ? 2 : 3)
+	};
+}
+
+// This is the actual code from the Army_calculatePriority3 global business rule, created in ServiceNow
+function Army_calculatePriority3(impact,urgency,isVip) {
+	var i = impact;
+	if (i < 1.0)
+		i = (isVip) ? 1 : 2;
+	else if (i > 3.0)
+		i = 3;
+	var u = urgency;
+	if (u < 1.0)
+		u = (isVip) ? 1 : 2;
+	else if (u > 3.0)
+		u = 3;
+	var p = Math.ceil(((i * u) + i + u) / 3.0);
+	if (isVip)
+		p = Math.round(((p * 2) + 1) / 3.0);
+	switch (p) {
+		case 1:
+			return "1|1 - Critical";
+		case 2:
+			return "2|2 - High";
+		case 4:
+			return "4|4 - Low";
+		case 5:
+			return "5|5 - Planning";
+		default:
+			return "3|3 - Moderate";
+	}
+}
+
+// This is the actual code from the Army_calculatePriority4 global business rule, created in ServiceNow
+function Army_calculatePriority4(impact,urgency,isVip) {
+	var i = impact;
+	if (i < 1.0)
+		i = (isVip) ? 2 : 3;
+	else if (i > 4.0)
+		i = 4;
+	var u = urgency;
+	if (u < 1.0)
+		u = (isVip) ? 2 : 3;
+	else if (u > 4.0)
+		u = 4;
+	var p = Math.ceil(((i * u) + i + u) / 5.0);
+	if (isVip)
+		p = Math.round(((p * 2) + 1) / 3.0);
+	switch (p) {
+		case 1:
+			return "1|1 - Critical";
+		case 2:
+			return "2|2 - High";
+		case 4:
+			return "4|4 - Low";
+		case 5:
+			return "5|5 - Planning";
+		default:
+			return "3|3 - Moderate";
+	}
+}
+
+// This is the out-of-the-box code from the calculatePriority global business rule, included with ServiceNow
+function calculatePriority(impact,urgency) {
+  var pVal = "4";
+
+  if (impact == 0 || urgency == 0)
+    pVal = "4";
+
+  if (impact == 1 && urgency == 1)
+    pVal = "1";
+
+  if (impact == 2 && urgency == 1)
+    pVal = "2";
+
+  if (impact == 3 && urgency == 1)
+    pVal = "3";
+
+  if (impact == 1 && urgency == 2)
+    pVal = "2";
+
+  if (impact == 2 && urgency == 2)
+    pVal = "3";
+
+  if (impact == 3 && urgency == 2)
+    pVal = "4";
+
+  if (impact == 1 && urgency == 3)
+    pVal = "3";
+
+  if (impact == 2 && urgency == 3)
+    pVal = "4";
+
+  if (impact == 3 && urgency == 3)
+    pVal = "5";
+
+  if (pVal == "1")
+    return "1|1 - Critical";
+
+  if (pVal == "2")
+    return "2|2 - High";
+
+  if (pVal == "3")
+    return "3|3 - Moderate";
+
+  if (pVal == "4")
+    return "4|4 - Low";
+
+  if (pVal == "5")
+    return "5|5 - Planning";
+}
+
+// This is a function to demonstrate a simple priority calculation, and is not an actual Business Rule.
+function calculatePriority_simple(impact,urgency) {
+	var i = impact;
+	if (i < 1.0)
+		i = 0.0;
+	else if (i > 3.0)
+		i = 3;
+	var u = urgency;
+	if (u < 1.0)
+		u = 0.0;
+	else if (u > 3.0)
+		u = 3;
+	var p = impact * urgency;
+	if (p > 0.0)
+		p = Math.round((p + 1) / 2.0);
+	switch (p) {
+		case 1:
+			return "1|1 - Critical";
+		case 2:
+			return "2|2 - High";
+		case 4:
+			return "4|4 - Low";
+		case 5:
+			return "5|5 - Planning";
+		default:
+			return "3|3 - Moderate";
+	}
+}
+
+var usersImpacted_choices = [
+	{ "value": 1, "label": "More than 100 people", "class": "high" },
+	{ "value": 2, "label": "50 to 100 people", "class": "" },
+	{ "value": 3, "label": "10 to 49 people", "class": "" },
+	{ "value": 4, "label": "Just myself / Less than 10 people", "class": "" },
+	{ "value": 0, "label": "I do not know", "class": "low" },
+];
+var productivityImpact_choices = [
+	{ "value": 1, "label": "This causes a complete work stoppage", "class": "high" },
+	{ "value": 2, "label": "This causes a partial work stoppage", "class": "" },
+	{ "value": 3, "label": "Progress and/or productivity is hindered", "class": "" },
+	{ "value": 4, "label": "A temporary work-around has been identified", "class": "low" }
+];
+// Choice values for urgency, using 3 levels
+var urgency_choices_3 = [
+	{ "value": 1, "label": "1 - High", "class": "high" },
+	{ "value": 2, "label": "2 - Medium", "class": "" },
+	{ "value": 3, "label": "3 - Low", "class": "low" },
+	{ "value": 0, "label": " - None - ", "class": "" }
+];
+// Choice values for urgency, using 4 levels
+var urgency_choices_4 = [
+	{ "value": 1, "label": "1 - Critical", "class": "high" },
+	{ "value": 2, "label": "2 - High", "class": "" },
+	{ "value": 3, "label": "3 - Medium", "class": "" },
+	{ "value": 4, "label": "4 - Low", "class": "low" },
+	{ "value": 0, "label": " - None - ", "class": "" }
+];
+// Choice values for impact, using 3 levels
+var impact_choices_3 = [
+	{ "value": 1, "label": "1 - Significant / Widespread", "class": "high" },
+	{ "value": 2, "label": "2 - Moderate / Limited", "class": "" },
+	{ "value": 3, "label": "3 - Minor / Localized", "class": "low" },
+	{ "value": 0, "label": " - None - ", "class": "" }
+];
+// Choice values for impact, using 4 levels
+var impact_choices_4 = [
+	{ "value": 1, "label": "1 - Extensive / Widespread", "class": "high" },
+	{ "value": 2, "label": "2 - Significant / Large", "class": "" },
+	{ "value": 3, "label": "3 - Moderate / Limited", "class": "" },
+	{ "value": 4, "label": "4 - Minor / Localized", "class": "low" },
+	{ "value": 0, "label": " - None - ", "class": "" }
+];
+function setDiagonalCanvas(el,strokeStyle) {
+	$(el).css("padding", "0px");
+	var width = $(el).width();
+	var height = $(el).height();
+	var canvas = document.createElement("canvas");
+	canvas.width = width;
+	canvas.height = height;
+	$(canvas).css("position", "absolute");
+	$(canvas).css("left", "0px");
+	$(canvas).css("top", "0px");
+	var div = $('<div style="position:relative"></div>');
+	$(div).css("width", width + "px");
+	$(div).css("height", height + "px");
+	$(el).empty();
+	div.append(canvas);
+	$(el).prepend(div);
+	var ctx = canvas.getContext("2d");
+	ctx.moveTo(width,0);
+	ctx.lineTo(0,height);
+	ctx.strokeStyle = strokeStyle;
+	ctx.stroke();
+}
+$(document).ready(function() {
+
+for (var p = 0; p < productivityImpact_choices.length; p++) {
+	var li = $('<li><strong>' + productivityImpact_choices[p].value + ' =</strong> ' + productivityImpact_choices[p].label + '</li>');
+	$('ul#productivityImpactUl').append(li);
+}
+for (var u = 0; u < usersImpacted_choices.length; u++) {
+	var li = $('<li><strong>' + usersImpacted_choices[u].value + ' =</strong> ' + usersImpacted_choices[u].label + '</li>');
+	$('ul#usersImpactedUl').append(li);
+	for (var p = 0; p < productivityImpact_choices.length; p++) {
+		var tr = $('<tr></tr>');
+		$('table#recordProducer_matrix > tbody').append(tr);
+		var className = usersImpacted_choices[u].class;
+		if (p == 0) {
+			if (className.length == 0) {
+				tr.append($('<td rowspan="16">' + usersImpacted_choices[u].label + '</td>'));
+				tr.append($('<td rowspan="16">' + usersImpacted_choices[u].value + '</td>'));
+			} else {
+				tr.append($('<td rowspan="16" class="' + className + '">' + usersImpacted_choices[u].label + '</td>'));
+				tr.append($('<td rowspan="16" class="' + className + '">' + usersImpacted_choices[u].value + '</td>'));
+			}
+		}
+		if (className == "low" || productivityImpact_choices[p].class == "high")
+			className = productivityImpact_choices[p].class;
+		var urgencyAndImpact = submitTroubleTicketCalculation(usersImpacted_choices[u].value,productivityImpact_choices[p].value,true,true);
+		$('table#recordProducer_matrix > tbody').append(tr);
+		if (className.length == 0) {
+			tr.append($('<td rowspan="4">' + productivityImpact_choices[p].label + '</td>'));
+			tr.append($('<td rowspan="4">' + productivityImpact_choices[p].value + '</td>'));
+		} else {
+			tr.append($('<td rowspan="4" class="' + className + '">' + productivityImpact_choices[p].label + '</td>'));
+			tr.append($('<td rowspan="4" class="' + className + '">' + productivityImpact_choices[p].value + '</td>'));
+		}
+		tr.append($('<td class="high">Yes</td>'));
+		tr.append($('<td class="high">Yes</td>'));
+		tr.append($('<td class="high">' + urgencyAndImpact.urgency + '</td>'));
+		tr.append($('<td class="high">' + urgencyAndImpact.impact + '</td>'));
+		tr.append($('<td class="high">' + Army_calculatePriority3(urgencyAndImpact.impact, urgencyAndImpact.urgency, true).substring(2) + '</td>'));
+		
+		urgencyAndImpact = submitTroubleTicketCalculation(usersImpacted_choices[u].value,productivityImpact_choices[p].value,false,true);
+		tr = $('<tr></tr>');
+		$('table#recordProducer_matrix > tbody').append(tr);
+		if (className != 'high') {
+			tr.append($('<td>No</td>'));
+			tr.append($('<td class="high">Yes</td>'));
+			tr.append($('<td>' + urgencyAndImpact.urgency + '</td>'));
+			tr.append($('<td>' + urgencyAndImpact.impact + '</td>'));
+			tr.append($('<td>' + Army_calculatePriority3(urgencyAndImpact.impact, urgencyAndImpact.urgency, true).substring(2) + '</td>'));
+		}
+		else {
+			tr.append($('<td class="high">No</td>'));
+			tr.append($('<td class="high">Yes</td>'));
+			tr.append($('<td class="high">' + urgencyAndImpact.urgency + '</td>'));
+			tr.append($('<td class="high">' + urgencyAndImpact.impact + '</td>'));
+			tr.append($('<td class="high">' + Army_calculatePriority3(urgencyAndImpact.impact, urgencyAndImpact.urgency, true).substring(2) + '</td>'));
+		}
+		
+		urgencyAndImpact = submitTroubleTicketCalculation(usersImpacted_choices[u].value,productivityImpact_choices[p].value,true,false);
+		tr = $('<tr></tr>');
+		$('table#recordProducer_matrix > tbody').append(tr);
+		tr.append($('<td class="high">Yes</td>'));
+		if (className != 'high') {
+			tr.append($('<td>No</td>'));
+			tr.append($('<td>' + urgencyAndImpact.urgency + '</td>'));
+			tr.append($('<td>' + urgencyAndImpact.impact + '</td>'));
+			tr.append($('<td>' + Army_calculatePriority3(urgencyAndImpact.impact, urgencyAndImpact.urgency, false).substring(2) + '</td>'));
+		} else {
+			tr.append($('<td class="high">No</td>'));
+			tr.append($('<td class="high">' + urgencyAndImpact.urgency + '</td>'));
+			tr.append($('<td class="high">' + urgencyAndImpact.impact + '</td>'));
+			tr.append($('<td class="high">' + Army_calculatePriority3(urgencyAndImpact.impact, urgencyAndImpact.urgency, false).substring(2) + '</td>'));
+		}
+		
+		urgencyAndImpact = submitTroubleTicketCalculation(usersImpacted_choices[u].value,productivityImpact_choices[p].value,false,false);
+		tr = $('<tr></tr>');
+		$('table#recordProducer_matrix > tbody').append(tr);
+		tr.append($('<td class="low">No</td>'));
+		tr.append($('<td class="low">No</td>'));
+		tr.append($('<td class="low">' + urgencyAndImpact.urgency + '</td>'));
+		tr.append($('<td class="low">' + urgencyAndImpact.impact + '</td>'));
+		tr.append($('<td class="low">' + Army_calculatePriority3(urgencyAndImpact.impact, urgencyAndImpact.urgency, false).substring(2) + '</td>'));
+	}
+}
+
+var impactTr = $('<tr><th class="bottomLeftBorder"></th><th class="bottomRightBorder">VIP</th></tr>');
+
+$('table#calculatePriority3_matrix > thead').append(impactTr);
+var headingCells = [];
+for (var i = 0; i < impact_choices_3.length; i++) {
+	var th = $('<th colspan="2">' + impact_choices_3[i].label + '</th>');
+	impactTr.append(th);
+	headingCells.push(th);
+}
+headingCells[0].addClass("bottomLeftBorder");
+for (var i = 1; i < headingCells.length - 1; i++) {
+	headingCells[i].addClass("bottomBorder");
+}
+headingCells[headingCells.length - 1].addClass("bottomRightBorder");
+var canvasCells = [];
+var calculatePriority3_matrixBody = $("table#calculatePriority3_matrix > tbody");
+var calculatePriority_comparisonsBody = $("table#calculatePriority_comparisons > tbody");
+for (var u = 0; u < urgency_choices_3.length; u++) {
+	var priority3MatrixTr1 = $('<tr><th class="rightBorder" rowspan="2" style="vertical-align:middle">' + urgency_choices_3[u].label + '</th></tr>');
+	calculatePriority3_matrixBody.append(priority3MatrixTr1);
+	var priority3MatrixTr2 = $("<tr></tr>");
+	calculatePriority3_matrixBody.append(priority3MatrixTr2);
+	for (var i = 0; i < impact_choices_3.length; i++) {
+		var simplePriority = calculatePriority_simple(impact_choices_3[i].value, urgency_choices_3[u].value).substring(2);
+		var ootbPriority = calculatePriority(impact_choices_3[i].value, urgency_choices_3[u].value).substring(2);
+		var normalPriority = Army_calculatePriority3(impact_choices_3[i].value, urgency_choices_3[u].value, false).substring(2);
+		var vipPriority = Army_calculatePriority3(impact_choices_3[i].value, urgency_choices_3[u].value, true).substring(2);
+		
+		priority3MatrixTr1.append($('<td class="topLeftBorder">' + normalPriority + '</td>'));
+		var td = $('<td class="topRightBorder">&nbsp;</td>');
+		canvasCells.push(td);
+		priority3MatrixTr1.append(td);
+		
+		td = $('<td class="bottomLeftBorder">&nbsp;</td>');
+		canvasCells.push(td);
+		priority3MatrixTr2.append(td);
+		priority3MatrixTr2.append($('<td class="bottomRightBorder">' + vipPriority + '</td>'));
+		
+		var tr = $("<tr></tr>");
+		calculatePriority_comparisonsBody.append(tr);
+		if (i == 0) {
+			if (urgency_choices_3[u].class.length == 0)
+				tr.append($('<td rowspan="4">' + urgency_choices_3[u].label + '</td>'));
+			else
+				tr.append($('<td rowspan="4" class="' + urgency_choices_3[u].class + '">' + urgency_choices_3[u].label + '</td>'));
+		}
+		if (impact_choices_3[i].class.length == 0) {
+			tr.append($('<td>' + impact_choices_3[i].label + '</td>'));
+			tr.append($("<td>" + simplePriority + "</td>"));
+			tr.append($("<td>" + ootbPriority + "</td>"));
+			tr.append($("<td>" + normalPriority + "</td>"));
+			tr.append($("<td>" + vipPriority + "</td>"));
+		} else {
+			tr.append($('<td class="' + impact_choices_3[i].class + '">' + impact_choices_3[i].label + '</td>'));
+			tr.append($('<td class="' + impact_choices_3[i].class + '">' + simplePriority + '</td>'));
+			tr.append($('<td class="' + impact_choices_3[i].class + '">' + ootbPriority + '</td>'));
+			tr.append($('<td class="' + impact_choices_3[i].class + '">' + normalPriority + '</td>'));
+			tr.append($('<td class="' + impact_choices_3[i].class + '">' + vipPriority + '</td>'));
+		}
+	}
+}
+$("table#calculatePriority3_matrix > tbody > tr:first").prepend($('<th rowspan="8" class="noRightBorder" style="vertical-align:middle">Urgency</th>'));
+setDiagonalCanvas($("table#calculatePriority3_matrix > thead > tr:first > th:nth-child(2)"), '#cccccc');
+setDiagonalCanvas($("table#calculatePriority3_matrix > thead > tr:nth-child(2) > th:first"), '#cccccc');
+for (var c = 0; c < canvasCells.length; c++) {
+	setDiagonalCanvas(canvasCells[c], '#cccccc');
+}
+
+impactTr = $('<tr><th class="bottomLeftBorder"></th><th class="bottomRightBorder">VIP</th></tr>');
+$('table#calculatePriority4_matrix > thead').append(impactTr);
+headingCells = [];
+for (var i = 0; i < impact_choices_4.length; i++) {
+	var th = $('<th colspan="2">' + impact_choices_4[i].label + '</th>');
+	impactTr.append(th);
+	headingCells.push(th);
+}
+headingCells[0].addClass("bottomLeftBorder");
+for (var i = 1; i < headingCells.length - 1; i++) {
+	headingCells[i].addClass("bottomBorder");
+}
+headingCells[headingCells.length - 1].addClass("bottomRightBorder");
+var canvasCells = [];
+var calculatePriority4_matrixBody = $("table#calculatePriority4_matrix > tbody");;
+for (var u = 0; u < urgency_choices_4.length; u++) {
+	var priority4MatrixTr1 = $('<tr><th class="rightBorder" rowspan="2" style="vertical-align:middle">' + urgency_choices_4[u].label + '</th></tr>');
+	calculatePriority4_matrixBody.append(priority4MatrixTr1);
+	var priority4MatrixTr2 = $("<tr></tr>");
+	calculatePriority4_matrixBody.append(priority4MatrixTr2);
+	for (var i = 0; i < impact_choices_4.length; i++) {
+		var simplePriority = calculatePriority_simple(impact_choices_4[i].value, urgency_choices_4[u].value).substring(2);
+		var ootbPriority = calculatePriority(impact_choices_4[i].value, urgency_choices_4[u].value).substring(2);
+		var normalPriority = Army_calculatePriority3(impact_choices_4[i].value, urgency_choices_4[u].value, false).substring(2);
+		var vipPriority = Army_calculatePriority3(impact_choices_4[i].value, urgency_choices_4[u].value, true).substring(2);
+		
+		priority4MatrixTr1.append($('<td class="topLeftBorder">' + normalPriority + '</td>'));
+		var td = $('<td class="topRightBorder">&nbsp;</td>');
+		canvasCells.push(td);
+		priority4MatrixTr1.append(td);
+		
+		td = $('<td class="bottomLeftBorder">&nbsp;</td>');
+		canvasCells.push(td);
+		priority4MatrixTr2.append(td);
+		priority4MatrixTr2.append($('<td class="bottomRightBorder">' + vipPriority + '</td>'));
+	}
+}
+$("table#calculatePriority4_matrix > tbody > tr:first").prepend($('<th rowspan="10" class="noRightBorder" style="vertical-align:middle">Urgency</th>'));
+setDiagonalCanvas($("table#calculatePriority4_matrix > thead > tr:first > th:nth-child(2)"), '#cccccc');
+setDiagonalCanvas($("table#calculatePriority4_matrix > thead > tr:nth-child(2) > th:first"), '#cccccc');
+for (var c = 0; c < canvasCells.length; c++) {
+	setDiagonalCanvas(canvasCells[c], '#cccccc');
+}
+});
+//]]></script>
+<style type="text/css">
+body, table {
+	font-family: Arial,Helvetica,sans-serif;
+	font-size: 12px;
+	color: black;
+	background-color: white;
+}
+.high {
+	color: #7f0000;
+}
+.low {
+	color: #7f7f00;
+}
+.bordered, table.bordered td, table.bordered th {
+	border: 1px solid #cccccc;
+}
+table.bordered {
+	border-collapse: collapse;
+}
+table.bordered td, table.bordered th {
+	padding: 4px;
+}
+table.bordered td {
+	text-align: left;
+	vertical-align: top;
+}
+table.bordered tfoot td, .note {
+	font-size: 10px;
+	color: gray;
+}
+table.bordered th {
+	color: white;
+	background-color: black;
+	text-align: center;
+	vertical-align: bottom;
+}
+table.bordered th.blank {
+	background-color: white;
+	border-width:0px;
+}
+table.bordered tbody th, table.bordered tfoot th {
+	text-align: right;
+	vertical-align: top;
+}
+
+table.bordered th.topRightBorder, table.bordered td.topRightBorder,
+table.bordered th.bottomRightBorder, table.bordered td.bottomRightBorder,
+table.bordered th.bottomBorder, table.bordered td.bottomBorder,
+table.bordered th.rightBorder, table.bordered td.rightBorder {
+	border-left: 0px;
+}
+
+table.bordered th.bottomLeftBorder, table.bordered td.bottomLeftBorder,
+table.bordered th.bottomRightBorder, table.bordered td.bottomRightBorder,
+table.bordered th.bottomBorder, table.bordered td.bottomBorder,
+table.bordered th.rightBorder, table.bordered td.rightBorder {
+	border-top: 0px;
+}
+
+table.bordered th.noRightBorder, table.bordered td.noRightBorder,
+table.bordered th.topLeftBorder, table.bordered td.topLeftBorder,
+table.bordered th.bottomLeftBorder, table.bordered td.bottomLeftBorder,
+table.bordered th.bottomBorder, table.bordered td.bottomBorder {
+	border-right: 0px;
+}
+
+table.bordered th.noBottomBorder, table.bordered td.noBottomBorder,
+table.bordered th.topLeftBorder, table.bordered td.topLeftBorder,
+table.bordered th.topRightBorder, table.bordered td.topRightBorder,
+table.bordered th.rightBorder, table.bordered td.rightBorder {
+	border-bottom: 0px;
+}
+
+table.bordered td.topRightBorder,
+table.bordered td.bottomRightBorder {
+	text-align: left;
+}
+
+table.bordered td.bottomLeftBorder,
+table.bordered td.bottomRightBorder {
+	vertical-align: top;
+}
+
+table.bordered td.noRightBorder,
+table.bordered td.topLeftBorder,
+table.bordered td.bottomLeftBorder,
+table.bordered td.rightBorder {
+	text-align: right;
+}
+
+table.bordered td.noBottomBorder,
+table.bordered td.topLeftBorder,
+table.bordered td.bottomBorder,
+table.bordered td.topRightBorder {
+	vertical-align: bottom;
+}
+
+table.bordered td.bottomBorder {
+	text-align: center;
+}
+table.bordered td.rightBorder {
+	vertical-align: middle;
+}
+
+table.bordered td.topRightBorder,
+table.bordered td.bottomRightBorder,
+table.bordered td.bottomBorder,
+table.bordered td.rightBorder {
+	padding-left: 0px;
+}
+
+table.bordered td.bottomLeftBorder,
+table.bordered td.bottomRightBorder,
+table.bordered td.bottomBorder,
+table.bordered td.rightBorder {
+	padding-top: 0px;
+}
+
+table.bordered td.noRightBorder,
+table.bordered td.topLeftBorder,
+table.bordered td.bottomLeftBorder,
+table.bordered td.bottomBorder {
+	padding-right: 0px;
+}
+
+table.bordered td.noBottomBorder,
+table.bordered td.topLeftBorder,
+table.bordered td.topRightBorder,
+table.bordered td.rightBorder {
+	padding-bottom: 0px;
+}
+
+</style>
+</head>
+<body>
+	<header>
+	</header>
+	<nav>
+	</nav>
+	<section>
+		<h1>Calculating Impact from Incident Record Producer</h1>
+		<h2>Indicator Values</h2>
+		The "Submit a Trouble Ticket" Record Producer, which is the form that helps users submit incidents, uses the following information to calculate the initial urgency and impact values for the indicent:
+		<ul>
+			<li><strong>Number of users impacted -</strong>
+				The user selects from a list of options which have values ranging 1 through 4, or 0 if the user does not know:
+				<ul id="usersImpactedUl"></ul>
+			</li>
+			<li><strong>Impact on Productivity -</strong>
+				The user selects from a list of options which have values ranging 1 through 4:
+				<ul id="productivityImpactUl"></ul>
+			</li>
+			<li><strong>Is Mission Related -</strong>
+				The user is able to indicate whether the indicent is mission-related, which will elevate urgency and impact.
+			</li>
+			<li><strong>VIP Status -</strong>
+				A user's VIP status will elevate the estimated urgency and impact.
+			</li>
+		</ul>
+		<table id="recordProducer_matrix" class="bordered">
+			<thead>
+				<tr>
+					<th colspan="2">Users Impacted</th>
+					<th colspan="2">Productivity Impact</th>
+					<th>Mission Related</th>
+					<th>VIP</th>
+					<th>Urgency</th>
+					<th>Impact</th>
+					<th>Priority</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+		
+		<h1>Calcualting Priority</h1>
+		<h2>Priority Matrixes</h2>
+		Out of the box, ServiceNow uses 3 levels of urgency and impact, ranging from 1 to 3, with 1 being the highest level. The original deployed ServiceNow instance used 4 levels, which makes the system prone to other complications relating to ServiceNow-provided upgrades and other integrations.
+		<h2>3-Level Matrix</h2>
+		<h3>Formula Explanation</h3>
+		<blockquote>Pseudo-code: <code>priority = CEILING(((impact X urgency) + impact + urgency) / 3.0)</code></blockquote>
+		<div>Where <code>impact</code> and <code>urgency</code> are values from <code>1</code> through <code>3</code>, with <code>1</code> being the highest importance. A value of <code>0</code> indicates that the impact or urgency was not specified.</div>
+		<div>This formula was created in order to match the out-of-the-box priority values, to which a delta could be applied for VIP users.
+		<blockquote class="note"><strong>Note:</strong>This formula produces a more accurate result than what you would get simply by taking the median value between impact and urgency. Using the median-value method tends to result in priority values that are disproportionately higher. See "Calculation Comparisons" to compare the results.</blockquote></div>
+		<h3>VIP User Delta</h3>
+		<blockquote>Pseudo-code: <code>vipPriority = Round(((priority * 2) + 1) / 3.0)</code></blockquote>
+		<div>Where <code>priority</code> is the calculated priority.</div>
+		<div>The effect of this formula is that it elevates the priority by 50%, while ensuring that the result is still a value from 1 through 5.</div>
+		<table id="calculatePriority3_matrix" class="bordered">
+			<caption>Priority Matrix Table</caption>
+			<thead>
+				<tr>
+					<th class="topLeftBorder">Normal</th>
+					<th class="topRightBorder">&nbsp;</th>
+					<th colspan="8" class="noBottomBorder">Impact</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+		<h3>Calculation Comparisons</h3>
+		The following table compares results of various priority calculation methods:
+		<table id="calculatePriority_comparisons" class="bordered">
+			<thead>
+				<tr>
+					<th rowspan="2">Urgency</th>
+					<th rowspan="2">Impact</th>
+					<th class="noBottomBorder" colspan="4">Priority</th>
+				</tr>
+				<tr>
+					<th class="bottomLeftBorder">Simple</th>
+					<th class="bottomBorder">OOTB</th>
+					<th class="bottomBorder">Normal</th>
+					<th class="bottomRightBorder">VIP</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+			<tfoot>
+				<td colspan="6">
+					<em>Legend</em>
+					<ul>
+						<li><strong>Simple -</strong> Uses a simpler method of simply multiplying urgency and impact values and adjusting them to a 1-to-5 scale.</li>
+						<li><strong>OOTB -</strong> ServiceNow's out-of-the-box priority calculation.</li>
+						<li><strong>Normal -</strong> Priority for non-VIP users.</li>
+						<li><strong>VIP -</strong> Priority for VIP users.</li>
+					</ul>
+				</td>
+			</tfoot>
+		</table>
+		<h2>4-Level Matrix</h2>
+		<h3>Formula Explanation</h3>
+		<blockquote>Pseudo-code: <code>CEILING(((impact X urgency) + impact + urgency) / 5.0)</code></blockquote>
+		<div>Where <code>impact</code> and <code>urgency</code> are values from <code>1</code> through <code>4</code>, with <code>1</code> being the highest importance. A value of <code>0</code> indicates that the impact or urgency is undefined.</div>
+		<div>This formula was modifed from the 3-level matrix formula, to accomodate 4 levels of impact and urgency.
+		<blockquote class="note"><strong>Note:</strong>Using 4-level values for impact and urgency is not recommended, as it veers away from the out-of-the-box expectations of ServiceNow, and could have a negatave effect on the success of applying patches and upgrades.</blockquote></div>
+		<h3>VIP User Delta</h3>
+		<blockquote>Pseudo-code: <code>vipPriority = Round(((priority * 2) + 1) / 3.0)</code></blockquote>
+		<div>Where <code>priority</code> is the calculated priority.</div>
+		<div>The effect of this formula is that it elevates the priority by 50%, while ensuring that the result is still a value from 1 through 5.</div>
+		<table id="calculatePriority4_matrix" class="bordered">
+			<caption>Priority Matrix Table</caption>
+			<thead>
+				<tr>
+					<th class="topLeftBorder">Normal</th>
+					<th class="topRightBorder">&nbsp;</th>
+					<th colspan="10" class="noBottomBorder">Impact</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</section>
+</body>
+</html>
