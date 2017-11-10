@@ -2,11 +2,42 @@
 <html>
 <head>
 	<title>Examples</title>
+	
 	<link rel="stylesheet" href="Theme/bootstrap.min.css" />
 	<link rel="stylesheet" href="Theme/bootstrap-grid.min.css" />
 	<link rel="stylesheet" href="Theme/bootstrap-reboot.min.css" />
 	<link rel="stylesheet" type="text/css" href="DataTables/datatables.min.css"/>
+	<script type="text/javascript" src="Script/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="Script/tether.min.js"></script>
+	<script type="text/javascript" src="Script/bootstrap.min.js"></script>
+	<script type="text/javascript" src="DataTables/datatables.min.js"></script>
+	<script type="text/javascript">
+class TaskItem {
+    constructor(title, description, impact, urgency) {
+        this.title = (typeof title == 'undefined' || title === null) ? '' : ((typeof title == 'string') ? title : title.toString());
+		this.description = (typeof description == 'undefined' || description === null) ? '' : ((typeof title == 'string') ? title : title.toString());
+		this.setImpactAndUrgency(impact, urgency);
+	}
+	setImpactAndUrgency(impact, urgency) {
+
+	}
+    static calculatePriority(impact, urgency) {
+    }
+}
+TaskItem.exp = {
+    minImpact: 1,
+    maxImpact: 3
+};
+
+	</script>
 </head>
 <body>
+	<header></header>
+	<nav></nav>
+	<article>
+
+	</article>
+	<aside></aside>
+	<footer></footer>
 </body>
 </html>
