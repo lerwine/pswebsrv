@@ -12,23 +12,96 @@
 	<script type="text/javascript" src="Script/bootstrap.min.js"></script>
 	<script type="text/javascript" src="DataTables/datatables.min.js"></script>
 	<script type="text/javascript">
-class TaskItem {
-    constructor(title, description, impact, urgency) {
-        this.title = (typeof title == 'undefined' || title === null) ? '' : ((typeof title == 'string') ? title : title.toString());
-		this.description = (typeof description == 'undefined' || description === null) ? '' : ((typeof title == 'string') ? title : title.toString());
-		this.setImpactAndUrgency(impact, urgency);
-	}
-	setImpactAndUrgency(impact, urgency) {
-
-	}
-    static calculatePriority(impact, urgency) {
-    }
-}
-TaskItem.exp = {
-    minImpact: 1,
-    maxImpact: 3
-};
-
+		var JSUtil = {
+			nil: function(obj) {
+				return (typeof obj === 'undefined' || obj === null);
+			},
+			asString: function(obj) {
+				if (typeof obj == 'undefined' || obj === null)
+					return "";
+				if (typeof obj == 'string')
+					return obj;
+				obj = obj.toString();
+				if (typeof obj == 'undefined' || obj === null)
+					return "";
+				return obj;
+			}
+		};
+		function TaskItem() {
+			var title = '';
+			var description = '';
+			var impact = 2;
+			var urgency = 2;
+			var priority = 2;
+			var state = 0;
+			var startOn = null;
+			var dueBy = null;
+			Object.defineProperty(this, 'title', {
+				get: function() { return title; },
+				set: function(value) { title = JSUtil.asString(value); }
+			});
+			Object.defineProperty(this, 'description', {
+				get: function() { return description; },
+				set: function(value) { description = JSUtil.asString(value); }
+			});
+			Object.defineProperty(this, 'impact', {
+				get: function() { return impact; },
+				set: function(value) {
+					if (typeof value == 'undefined' || value === null || !$.isNumeric(value))
+						throw 'Impact must be a number';
+					if (value < 1 || value > 3)
+						throw 'Impact value out of range';
+					impact = JSUtil.asString(value);
+					this.priority = TaskItem.calculatePriority(impact, urgency);
+				}
+			});
+			Object.defineProperty(this, 'urgency', {
+				get: function() { return urgency; },
+				set: function(value) {
+					if (typeof value == 'undefined' || value === null || !$.isNumeric(value))
+						throw 'Impact must be a number';
+					if (value < 1 || value > 3)
+						throw 'Impact value out of range';
+					impact = JSUtil.asString(value);
+					this.priority = TaskItem.calculatePriority(impact, urgency);
+				}
+			});
+		}
+		TaskItem.calculatePriority = function(impact, urgency) {
+			if ($.isNumeric(impact) && impact >= 1.0) {
+				if (impact > 3)
+					impact = 3;
+				if ($.isNumeric(urgency) && urgency >= 1.0) {
+					if (urgency > 3)
+						urgency = 3;
+					return Math.ceil(((urgency * impact) + urgency + impact) / 3.0);
+				}
+				return impact;
+			}
+			if ($.isNumeric(urgency) && urgency >= 1.0)
+				return (urgency > 3) ? 3 : Math.round(urgency);
+			return 2;
+		}
+		TaskItem.prototype.setImpactAndUrgency = function(impact, urgency) {
+			if ($.isNumeric(impact) && impact >= 1.0) {
+				if (impact > 3)
+					impact = 3;
+				this.impact = Math.round(impact);
+				if ($.isNumeric(urgency) && urgency >= 1.0) {
+					if (urgency > 3)
+						urgency = 3;
+					this.urgency = Math.round(urgency);
+					this.priority = Math.ceil(((urgency * impact) + urgency + impact) / 3.0);
+				}
+				this.urgency = this.impact;
+			} else {
+				if ($.isNumeric(urgency) && urgency >= 1.0)
+					this.urgency = (urgency > 3) ? 3 : Math.round(urgency);
+				else
+					this.urgency = 2;
+				this.impact = this.urgency;
+			}
+		};
 	</script>
 </head>
 <body>

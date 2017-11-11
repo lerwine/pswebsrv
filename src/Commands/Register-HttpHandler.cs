@@ -11,6 +11,7 @@ namespace Erwine.Leonard.T.PSWebSrv.Commands
 	/// Adds an HTTP Handler to an HTTP listener for handling requests.
 	/// </summary>
 	[Cmdlet(VerbsLifecycle.Register, "HttpHandler", DefaultParameterSetName = ParameterSetName_Script)]
+	[OutputType(typeof(PSHttpHandler))]
 	public class Register_HttpHandler : PSCmdlet
 	{
 		public const string ParameterSetName_Script = "Script";
@@ -25,59 +26,70 @@ namespace Erwine.Leonard.T.PSWebSrv.Commands
 		public string Name { get; set; }
 
 		/// <summary>
-		/// String which identifies the associated HTTP listener.
+		/// The <seealso cref="PSHttpListener" /> to register the HTTP handler with.
 		/// </summary>
-		[Parameter(Mandatory = true, HelpMessage = "String which identifies the associated HTTP listener.")]
-		[ValidateNotNullOrEmpty()]
-		public string Listener { get; set; }
+		[Parameter(Mandatory = true, HelpMessage = "The PSHttpListener to register the HTTP handler with.")]
+		[ValidateNotNull()]
+		public PSHttpListener Listener { get; set; }
 
 		/// <summary>
 		/// ScriptBlock which will handle HTTP Requests.
 		/// </summary>
 		[Parameter(Mandatory = true, ParameterSetName = ParameterSetName_Script, HelpMessage = "ScriptBlock which will handle HTTP Requests.")]
-		[ValidateNotNullOrEmpty()]
+		[ValidateNotNull()]
 		public ScriptBlock Script { get; set; }
 
 		/// <summary>
 		/// Path to location of files to be served.
 		/// </summary>
 		[Parameter(Mandatory = true, ParameterSetName = ParameterSetName_Path, HelpMessage = "Path to location of files to be served.")]
-		[ValidateNotNullOrEmpty()]
+		[ValidateLocalPath()]
 		public string PagePath { get; set; }
 
 		/// <summary>
 		/// Location of local Data Store
 		/// </summary>
 		[Parameter(Mandatory = true, ParameterSetName = ParameterSetName_DataStore, HelpMessage = "Location of local Data Store")]
-		[ValidateNotNullOrEmpty()]
+		[ValidateLocalPath()]
 		public string DataStore { get; set; }
 
 		/// <summary>
 		/// Virtual path for requests.
 		/// </summary>
-		[Parameter(HelpMessage = "Virtual path for requests.")]
-		[ValidateNotNullOrEmpty()]
+		[Parameter(Mandatory = true, HelpMessage = "Virtual path for requests.")]
+		[ValidateVirtualPath()]
 		public string VirtualPath { get; set; }
 
 		/// <summary>
 		/// Case-insensitive pattern to match, relative to the Virtual Directory, which will be handled.
 		/// </summary>
 		[Parameter(HelpMessage = "Case-insensitive pattern to match, relative to the Virtual Directory, which will be handled.")]
-		[ValidateNotNullOrEmpty()]
+		[ValidateRegexPattern()]
 		public string Pattern { get; set; }
 
 		/// <summary>
 		/// Case-insensitive pattern to match, relative to the Virtual Directory, which will be explicitly excluded.
 		/// </summary>
 		[Parameter(HelpMessage = "Case-insensitive pattern to match, relative to the Virtual Directory, which will be explicitly excluded.")]
-		[ValidateNotNullOrEmpty()]
+		[ValidateRegexPattern()]
 		public string Exclude { get; set; }
 
 		protected override void ProcessRecord()
 		{
             try
             {
-                throw new NotImplementedException();
+				switch (ParameterSetName)
+				{
+					case ParameterSetName_Path:
+						WriteObject(Listener.RegisterPathHandler(this, Name, PagePath, VirtualPath, Pattern, Exclude));
+						break;
+					case ParameterSetName_DataStore:
+						WriteObject(Listener.RegisterDataStoreHandler(this, Name, DataStore, VirtualPath, Pattern, Exclude));
+						break;
+					default:
+						WriteObject(Listener.RegisterScriptHandler(this, Name, Script, VirtualPath, Pattern, Exclude));
+						break;
+				}
             }
             catch (Exception e)
             {

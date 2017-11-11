@@ -9,31 +9,46 @@ namespace Erwine.Leonard.T.PSWebSrv.Commands
     /// Creates and registers a new <seealso cref="HttpListener" />.
     /// </summary>
     [Cmdlet(VerbsCommon.New, "HttpListener")]
-    //[OutputType(typeof(HttpListenerInfo))]
+    [OutputType(typeof(PSHttpListener))]
     public class New_HttpListener : PSCmdlet
     {
-        [Parameter(Mandatory = true, HelpMessage = "String which uniquely identifies the new HTTP Listener.")]
+        [Parameter(HelpMessage = "The realm, or resource partition, associated with this HttpListener object.")]
         [ValidateNotNullOrEmpty()]
-        public string ID { get; set; }
+        public string Realm { get; set; }
 
-        [Parameter(Mandatory = true, HelpMessage = "The scheme to use.")]
-        [ValidateNotNullOrEmpty()]
-        public string Scheme { get; set; }
+        [Parameter(HelpMessage = "When NTLM is used, additional requests using the same Transmission Control Protocol (TCP) connection are required to authenticate.")]
+        public SwitchParameter UnsafeConnectionNtlmAuthentication { get; set; }
 
-        [Parameter(Mandatory = true, HelpMessage = "Host name or IP Address to listen on.")]
-        [ValidateHostName()]
-        [Alias("Host", "HostIP", "IP", "IPAddress")]
-        public object HostName { get; set; }
-
-        [Parameter(HelpMessage = "Port to listen on.")]
-        [ValidateNotNullOrEmpty()]
-        public int Port { get; set; }
+        [Parameter(HelpMessage = "Ignore any exceptions that occur when the internal HttpListener sends the response to the client.")]
+        public SwitchParameter IgnoreWriteExceptions { get; set; }
 
         protected override void ProcessRecord()
         {
             try
             {
-                throw new NotImplementedException();
+                PSHttpListener listener = new PSHttpListener();
+                if (!String.IsNullOrEmpty(Realm))
+                {
+                    try { listener.Realm = Realm; }
+                    catch (Exception err)
+                    {
+                        WriteError(new ErrorRecord(err, "HttpListener_Set_Realm", ErrorCategory.InvalidArgument, Realm));
+                        return;
+                    }
+                }
+                try { listener.IgnoreWriteExceptions = IgnoreWriteExceptions.IsPresent; }
+                catch (Exception err)
+                {
+                    WriteError(new ErrorRecord(err, "HttpListener_Set_IgnoreWriteExceptions", ErrorCategory.InvalidArgument, IgnoreWriteExceptions.IsPresent));
+                    return;
+                }
+                try { listener.UnsafeConnectionNtlmAuthentication = UnsafeConnectionNtlmAuthentication.IsPresent; }
+                catch (Exception err)
+                {
+                    WriteError(new ErrorRecord(err, "HttpListener_Set_UnsafeConnectionNtlmAuthentication", ErrorCategory.InvalidArgument, UnsafeConnectionNtlmAuthentication.IsPresent));
+                    return;
+                }
+                WriteObject(listener);
             }
             catch (Exception e)
             {
