@@ -7,106 +7,362 @@ namespace Erwine.Leonard.T.PSWebSrv
 {
     public class UrlDetails
     {
+        /*
+            (
+                (?<scheme>[^:\\/@?#]*)
+                    :
+                    (
+                        [\\/]{2}
+                        (
+                            (
+                                (?<username>[^:\\/@?#]*)
+                                (:(?<password>[^:\\/@?#]*))?@
+                            )?
+                            (?<host>[^:\\/?#]*)(:(?<port>\d+)?
+                        )?
+                    )?
+                |
+                (?<host>//[^\\/?#])
+                |
+                (
+                    (?<username>[^:\\/@?#]*)
+                    (:(?<password>[^:\\/@?#]*))?@
+                )?
+                (?<host>[^:\\/?#]*)(:(?<port>\d+)?
+            )?
+            (?<path>[^?#]+)?(?<query>\?[^#]*)?(?<fragment>#.+)?
+         */
+        public void Parse(string uri)
+        {
+            int index1 = uri.IndexOfAny(new char[] { ':', '@', '/', '\\' });
+            int index2, index3, index4, index5, index6;
+            char c = uri[index1];
+            if (c == ':')
+            {
+                index2 = uri.IndexOfAny(new char[] { '\\', '/', '@', ':' }, index1 + 1);
+                c = uri[index2];
+                if (c == '@')
+                {
+                    // :@
+                    index3 = uri.IndexOfAny(new char[] { '\\', '/', ':' }, index1 + 1);
+                    c = uri[index2];
+                    if (c == ':')
+                    {
+                        // :@:
+                        // text:text@text:
+                        // user:pw@host:port/path
+                    }
+                    else
+                    {
+                        // :@/
+                        // text:text@text/
+                        // user:pw@host/path
+                    }
+                    return;
+                }
+                if (c == '\\' || c == '/')
+                {
+                    // :/
+                    index3 = uri.IndexOfAny(new char[] { '\\', '/', ':', '@' }, index2 + 1);
+                    c = uri[index3];
+                    if (index3 == '\\' || index3 == '/')
+                    {
+                        // ://
+                        index4 = uri.IndexOfAny(new char[] { '\\', '/', ':', '@' }, index3 + 1);
+                        c = uri[index4];
+                        if (c == ':')
+                        {
+                            // ://:
+                            index5 = uri.IndexOfAny(new char[] { '\\', '/', ':', '@' }, index4 + 1);
+                            c = uri[index5];
+                            if (c == '/' || c == '\\')
+                            {
+                                // ://:/
+                                // http://host:port/path
+                            }
+                            if (c == '@')
+                            {
+                                // ://:@
+                                index6 = uri.IndexOfAny(new char[] { '\\', '/', ':', '@' }, index5 + 1);
+                                c = uri[index6];
+                                if (c == '/' || c == '\\')
+                                {
+                                    // ://:@/
+                                    // http://user:pw@host/path
+                                }
+                                if (c == ':')
+                                {
+                                    // ://:@:
+                                    // http://user:pw@host:port/path
+                                }
+                            }
+                            
+                            return;
+                        }
+                        if (c == '@')
+                        {
+                            // ://@
+                            // http://user@host:port/path
+                            // http://user@host/path
+                        }
+                        
+                        if (c == '\\' || c == '/')
+                        {
+                            // :///
+                            // http://host/path
+                            // http:///path
+                        }
+                        return;
+                    }
+
+                    // :/?
+                    // (:/?) host:port/path
+                }
+                // ::
+                // urn:my
+            }
+
+            if (c == '@')
+            {
+                index2 = uri.IndexOfAny(new char[] { ':', '/', '\\' }, index1 + 1);
+                c = uri[index2];
+                if (c == ':')
+                {
+                    // user@host:port/path
+                }
+                if (c == '/')
+                {
+                    // user@host/path
+                }
+
+                // user@host
+            }
+
+            if ((c == '\\' || c == '/') && index1 == 0 && uri.IndexOfAny(new char[] { '/', '\\' }, 1) == 1)
+            {
+                // \\host\path
+            }
+            // path
+        }
+
         public char PathSeparator = '/';
         public char AltPathSeparator = '\\';
         public char SchemeSeparator = ':';
         public char QuerySeparator = '?';
         public char FragmentSeparator = '#';
         private string _scheme;
-        private string _host;
+        private string _userName;
+        private string _password;
+        private string _hostName;
+        private int _port;
+        private string[] _path;
+        private Tuple<string, string> _query;
         private string _fragment;
 
         public UrlDetails(string url)
         {
-            Func<string, int, int> getPathIndex = (str, startIndex) => 
-            {
-                int x = url.IndexOf(PathSeparator, startIndex);
-                int y = url.IndexOf(AltPathSeparator, startIndex);
-                return (x < 0) ? y : ((y < 0 || x < y) ? x : y);
-            };
-            int pathIndex = getPathIndex(url, 0);
-            int schemeIndex = url.IndexOf(SchemeSeparator);
-            int queryIndex = url.IndexOf(QuerySeparator);
-            int fragmentIndex = url.IndexOf(FragmentSeparator);
-            if (fragmentIndex >= 0)
-            {
-                if (pathIndex > fragmentIndex)
-                    pathIndex = -1;
-                if (schemeIndex > fragmentIndex)
-                    schemeIndex = -1;
-                if (queryIndex > fragmentIndex)
-                    queryIndex = -1;
-            }
-            if (queryIndex >= 0)
-            {
-                if (pathIndex > queryIndex)
-                    pathIndex = -1;
-                if (schemeIndex > queryIndex)
-                    schemeIndex = -1;
-            }
-            if (pathIndex >= 0 && schemeIndex > pathIndex)
-                schemeIndex = -1;
-            if (schemeIndex >= 0)
-            {
-                _scheme = UriDecode(url.Substring(0, schemeIndex));
-                schemeIndex++;
-            }
+            int index = url.IndexOfAny(new char[] { '#', '?' });
+            if (index < 0)
+                Initialize3(url, null, null);
             else
             {
-                schemeIndex = 0;
-                _scheme = null;
-            }
-            string path, query;
-            if (queryIndex < 0)
-            {
-                query = null;
-                if (fragmentIndex < 0)
-                {
-                    _fragment = null;
-                    path = url.Substring(schemeIndex);
-                }
+                char c = url[index];
+                if (c == '#')
+                    Initialize3(url.Substring(0, index), null, url.Substring(index + 1));
                 else
                 {
-                    _fragment = url.Substring(fragmentIndex + 1);
-                    path = url.Substring(schemeIndex, fragmentIndex - schemeIndex);
+                    string s = url.Substring(0, index);
+                    index++;
+                    int index2 = url.IndexOf('#', index);
+                    if (index2 < 0)
+                        Initialize3(s, url.Substring(index), null);
+                    else
+                        Initialize3(s, url.Substring(index, index2 - index), url.Substring(index2 + 1));
                 }
             }
+        }
+
+        private void Initialize3(string schemeHostAndPath, string query, string fragment)
+        {
+            int index = (String.IsNullOrEmpty(schemeHostAndPath)) ? -1 : schemeHostAndPath.IndexOfAny(new char[] { ':', '\\', '/', '@' });
+            if (index < 0)
+            {
+                Initialize5(null, null, schemeHostAndPath, query, fragment);
+                return;
+            }
+            char c = schemeHostAndPath[index];
+            int index2;
+            if (c == ':')
+            {
+                index2 = schemeHostAndPath.IndexOfAny(new char[] { '\\', '/', '@', ':' });
+                if (index2 < 0 || (c = schemeHostAndPath[index2]) == ':')
+                {
+                    // scheme:text*
+                    // scheme:text:*
+                    Initialize5(schemeHostAndPath.Substring(0, index), null, schemeHostAndPath.Substring(index + 1), query, fragment);
+                    return;
+                }
+                if (c == '@')
+                {
+                    // user:pw@host:80/path
+                    // user:pw@host/path
+
+                    // username = schemeHostAndPath.Substring(0, index)
+                    // index++;
+                    // password = schemeHostAndPath.Substring(index, index2 - index1)
+                    // hostAndPath = schemeHostAndPath.Substring(index2);
+                    return;
+                }
+                
+                string scheme = schemeHostAndPath.Substring(0, index);
+                int portNumber;
+                index++;
+                if (index2 > index)
+                {
+                    // host:port/path
+                    string host = schemeHostAndPath.Substring(index, index2 - index);
+                    if (Int32.TryParse(host, out portNumber))
+                        Initialize6(null, scheme, portNumber, schemeHostAndPath.Substring(index2), query, fragment);
+                    else
+                        Initialize5(scheme, host, schemeHostAndPath.Substring(index2), query, fragment);
+                    return;
+                }
+
+                index2++;
+                if (index2 < schemeHostAndPath.Length)
+                {
+                    c = schemeHostAndPath[index2];
+                    if (c == '\\' || c == '/')
+                        index2++;
+                    else
+                    {
+                        // scheme:/path
+                        Initialize5(scheme, null, schemeHostAndPath.Substring(index), query, fragment);
+                        return;
+                    }
+                }
+                // scheme://*
+                Initialize4(scheme, schemeHostAndPath.Substring(index2), query, fragment);
+                return;
+            }
+
+            if (c == '@')
+            {
+                string userName = schemeHostAndPath.Substring(0, index);
+                index++;
+                index2 = (index < schemeHostAndPath.Length) ? schemeHostAndPath.IndexOfAny(new char[] { ':', '\\', '/' }, index) : -1;
+                if (index2 < 0)
+                {
+                    Initialize7(null, userName, null, schemeHostAndPath.Substring(index), null, query, fragment);
+                    return;
+                }
+
+                string host = schemeHostAndPath.Substring(index, index2 - index);
+                if (schemeHostAndPath[index2] == ':')
+                {
+                    index2++;
+                    index = schemeHostAndPath.IndexOfAny(new char[] { '/', '\\' }, index2);
+                    int portNumber;
+                    if (index > 0 && Int32.TryParse(schemeHostAndPath.Substring(index2, index - index2), out portNumber))
+                    {
+                        Initialize8(null, userName, null, host, portNumber, schemeHostAndPath.Substring(index + 1), query, fragment);
+                        return;
+                    }
+                }
+
+                Initialize7(null, userName, null, host, schemeHostAndPath.Substring(index2 + 1), query, fragment);
+                return;
+            }
+
+            if (index == 0 && schemeHostAndPath.Length > 2)
+            {
+                c = schemeHostAndPath[1];
+                if (c == '\\' || c == '/')
+                {
+                    index = schemeHostAndPath.IndexOfAny(new char[] { '\\', '/' }, 2);
+                    if (index < 0)
+                        Initialize8(null, null, null, schemeHostAndPath.Substring(2), -1, null, query, fragment);
+                    else
+                        Initialize8(null, null, null, schemeHostAndPath.Substring(2, index - 2), -1, schemeHostAndPath.Substring(index), query, fragment);
+                    return;
+                }
+            }
+            Initialize8(null, null, null, null, -1, schemeHostAndPath, query, fragment);
+        }
+        
+        private void Initialize4(string scheme, string authHostAndPath, string query, string fragment)
+        {
+            int index = authHostAndPath.IndexOfAny(new char[] { '@', '\\', '/' });
+            if (index < 0)
+            {
+                Initialize8(scheme, null, null, authHostAndPath, -1, null, query, fragment);
+                return;
+            }
+            int index2;
+            if (authHostAndPath[index] == '@')
+            {
+                index2 = authHostAndPath.IndexOfAny(new char[] { ':', '\\', '/' });
+                if (index2 < 0)
+                {
+                    // user@host
+                    Initialize8(scheme, authHostAndPath.Substring(0, index), null, authHostAndPath.Substring(index + 1), -1, null, query, fragment);
+                    return;
+                }
+                if (authHostAndPath[index2] == ':')
+                {
+                    if (index2 < index)
+                    {
+                        // user:pw@host:80/path
+                        // user:pw@host/path
+                    }
+                    else
+                    {
+                        // user@host:80/path
+                    }
+                    return;
+                }
+
+                // user@host/path
+                return;
+            }
+
+            if (authHostAndPath[index] == ':')
+            {
+                // host:80/path
+                return;
+            }
+
+            if (index == 0)
+                Initialize8(scheme, null, null, null, -1, authHostAndPath, query, fragment);
             else
-            {
-                path = url.Substring(schemeIndex, queryIndex - schemeIndex);
-                queryIndex++;
-                if (fragmentIndex < 0)
-                {
-                    _fragment = null;
-                    query = url.Substring(queryIndex);
-                }
-                else
-                {
-                    _fragment = url.Substring(fragmentIndex + 1);
-                    query = url.Substring(queryIndex, fragmentIndex - queryIndex);
-                }
-            }
+                Initialize8(scheme, null, null, authHostAndPath.Substring(0, index), -1, authHostAndPath.Substring(index), query, fragment);
+        }
+        
+        private void Initialize5(string scheme, string authAndHost, string path, string query, string fragment)
+        {
+            // user:pw@host:80
+            // user@host
+            // user@host:80
+            // host:80
+            // user:pw@host
+            // host
+        }
+        
+        private void Initialize6(string scheme, string authAndHost, int portNumber, string path, string query, string fragment)
+        {
+            // user:pw@host
+            // user@host
+            // host
+        }
+        
+        private void Initialize7(string scheme, string userName, string password, string hostAndPort, string path, string query, string fragment)
+        {
 
-            string host;
-            if (_scheme != null && path.Length > 1 && (path[0] == PathSeparator || path[0] == AltPathSeparator) && (path[1] == PathSeparator || path[1] == AltPathSeparator))
-            {
-                pathIndex = getPathIndex(path, 2);
-                if (pathIndex < 0)
-                    host = path.Substring(2);
-                else
-                {   
-                    host = path.Substring(2, pathIndex - schemeIndex);
-                    pathIndex = getPathIndex(path, pathIndex + 1);
-                }
-            }
-            else
-                host = null;
+        }
+        
+        private void Initialize8(string scheme, string userName, string password, string host, int portNumber, string path, string query, string fragment)
+        {
 
-            List<string> pathNodes = new List<string>();
-            while (pathIndex > -1)
-            {
-
-            }
         }
 
         public UrlDetails()
